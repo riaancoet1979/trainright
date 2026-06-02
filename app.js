@@ -1353,15 +1353,20 @@ function renderProgress(el) {
     for (const [ds, log] of Object.entries(logs)) {
       const exLog = log.exercises && log.exercises[exId];
       if (!exLog || !exLog.sets || exLog.sets.length === 0) continue;
-      const completedSets = exLog.sets.filter(s => s.done || s.leftDone || s.rightDone);
-      if (completedSets.length === 0) continue;
+      // Count any set with a weight value — done ✓ is preferred but not required,
+      // so users who forget to tap ✓ still see their data on the chart.
+      const dataSets = exLog.sets.filter(s =>
+        s.done || s.leftDone || s.rightDone ||
+        s.weight || s.leftWeight || s.rightWeight
+      );
+      if (dataSets.length === 0) continue;
 
       if (isUni) {
-        const leftMaxW = Math.max(...completedSets.map(s => parseFloat(s.leftWeight)||0));
-        const rightMaxW = Math.max(...completedSets.map(s => parseFloat(s.rightWeight)||0));
+        const leftMaxW = Math.max(...dataSets.map(s => parseFloat(s.leftWeight)||0));
+        const rightMaxW = Math.max(...dataSets.map(s => parseFloat(s.rightWeight)||0));
         if (leftMaxW > 0 || rightMaxW > 0) points.push({date: ds, left: leftMaxW, right: rightMaxW});
       } else {
-        const maxW = Math.max(...completedSets.map(s => parseFloat(s.weight)||0));
+        const maxW = Math.max(...dataSets.map(s => parseFloat(s.weight)||0));
         if (maxW > 0) points.push({date: ds, val: maxW});
       }
     }
@@ -1385,8 +1390,18 @@ function renderProgress(el) {
           <span><span class="legend-dot" style="background:var(--right-col)"></span>R</span>
         </div>` : ''}
       </div>`;
-    if (points.length < 2) {
-      html += `<div class="chart-empty">Not enough data yet — keep logging!</div>`;
+    if (points.length === 0) {
+      html += `<div class="chart-empty">No data yet — log a set to start tracking!</div>`;
+    } else if (points.length === 1) {
+      // Single session — show the value as a stat card instead of a sparse chart
+      const p = points[0];
+      const valStr = isUni
+        ? `<span style="color:var(--left-col)">L ${p.left||'—'}kg</span> · <span style="color:var(--right-col)">R ${p.right||'—'}kg</span>`
+        : `${p.val} kg`;
+      html += `<div class="chart-empty" style="font-size:14px;color:var(--text)">
+        ${valStr} <span style="color:var(--text-muted);font-size:12px">on ${formatDateShort(p.date)}</span>
+        <div style="margin-top:6px;font-size:11px;color:var(--text-dim)">Log another session to see your progress line.</div>
+      </div>`;
     } else if (isUni) {
       html += svgLineChart([
         {data: points.map(p=>({x:p.date,y:p.left})),  color:'var(--left-col)',  label:'Left'},
