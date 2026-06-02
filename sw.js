@@ -1,5 +1,5 @@
-// TrainRight Service Worker v3
-const CACHE = 'trainright-v3';
+// TrainRight Service Worker v4
+const CACHE = 'trainright-v4';
 const ASSETS = [
   './',
   './index.html',

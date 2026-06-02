@@ -1136,16 +1136,16 @@ function renderBodyLogTab() {
   if (recent.length > 0) {
     html += `<h3 style="margin-bottom:10px">Recent Entries</h3>`;
     for (const m of recent) {
-      html += `<div class="card-sm flex-between">
+      html += `<div class="card-sm flex-between" style="cursor:pointer" onclick="loadBodyEntry('${m.date}')">
         <div>
-          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)}</div>
+          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)} <span style="font-weight:400;color:var(--text-dim);font-size:11px">· tap to edit</span></div>
           <div style="font-size:12px;color:var(--text-muted)">
             ${m.weight?m.weight+' kg':''}${m.bfp?' · '+m.bfp+'% BF':''}${m.smm?' · SMM '+m.smm+' kg':''}
           </div>
           ${(m.leftArmLean||m.rightArmLean) ? `<div style="font-size:12px;margin-top:2px"><span style="color:var(--left-col)">L ${m.leftArmLean||'—'}</span> · <span style="color:var(--right-col)">R ${m.rightArmLean||'—'}</span> kg lean</div>` : ''}
           ${m.shoulderWidth ? `<div style="font-size:12px;margin-top:2px;color:var(--text-muted)">Shoulders ${m.shoulderWidth} cm</div>` : ''}
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="deleteBodyEntry('${m.date}')">✕</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();deleteBodyEntry('${m.date}')">✕</button>
       </div>`;
     }
   }
@@ -1269,6 +1269,35 @@ function deleteBodyEntry(date) {
   d.bodyMetrics = d.bodyMetrics.filter(m => m.date !== date);
   saveData(d);
   renderApp();
+}
+
+function loadBodyEntry(date) {
+  const d = getData();
+  const m = d.bodyMetrics.find(x => x.date === date);
+  if (!m) return;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = (val === undefined || val === null) ? '' : val;
+  };
+  setVal('bm-date',     m.date);
+  setVal('bm-weight',   m.weight);
+  setVal('bm-bfp',      m.bfp);
+  setVal('bm-smm',      m.smm);
+  setVal('bm-lalean',   m.leftArmLean);
+  setVal('bm-ralean',   m.rightArmLean);
+  setVal('bm-lacirc',   m.leftArmCirc);
+  setVal('bm-racirc',   m.rightArmCirc);
+  setVal('bm-shoulder', m.shoulderWidth);
+  setVal('bm-chest',    m.chest);
+  setVal('bm-waist',    m.waist);
+  setVal('bm-thighl',   m.thighL);
+  setVal('bm-thighr',   m.thighR);
+  // Scroll the form into view so the user can see the prefilled fields
+  const dateField = document.getElementById('bm-date');
+  if (dateField && dateField.scrollIntoView) {
+    dateField.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  showToast(`Loaded ${formatDateShort(m.date)} — edit & save to update`);
 }
 
 function parseFloatOrEmpty(id) {
