@@ -1136,9 +1136,9 @@ function renderBodyLogTab() {
   if (recent.length > 0) {
     html += `<h3 style="margin-bottom:10px">Recent Entries</h3>`;
     for (const m of recent) {
-      html += `<div class="card-sm flex-between" style="cursor:pointer" onclick="loadBodyEntry('${m.date}')">
+      html += `<div class="card-sm flex-between" style="cursor:pointer" onclick="viewBodyEntry('${m.date}')">
         <div>
-          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)} <span style="font-weight:600;color:var(--primary);font-size:12px;margin-left:6px">✏️ tap to edit</span></div>
+          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)} <span style="font-weight:600;color:var(--primary);font-size:12px;margin-left:6px">👁 tap to view</span></div>
           <div style="font-size:12px;color:var(--text-muted)">
             ${m.weight?m.weight+' kg':''}${m.bfp?' · '+m.bfp+'% BF':''}${m.smm?' · SMM '+m.smm+' kg':''}
           </div>
@@ -1269,6 +1269,74 @@ function deleteBodyEntry(date) {
   d.bodyMetrics = d.bodyMetrics.filter(m => m.date !== date);
   saveData(d);
   renderApp();
+}
+
+// Open a read-only detail panel with every recorded field for one body entry.
+// Includes an "Edit" action that hands off to loadBodyEntry().
+function viewBodyEntry(date) {
+  const d = getData();
+  const m = d.bodyMetrics.find(x => x.date === date);
+  if (!m) return;
+  const fmtVal = v => (v === undefined || v === null || v === '') ? '—' : v;
+  const row = (label, val, unit) => {
+    const display = (val === undefined || val === null || val === '') ? '—' : `${val}${unit ? ' ' + unit : ''}`;
+    const isMissing = display === '—';
+    return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">
+      <span style="color:var(--text-muted)">${label}</span>
+      <span style="font-weight:${isMissing?400:600};color:${isMissing?'var(--text-dim)':'var(--text)'}">${display}</span>
+    </div>`;
+  };
+  let gapStr = '—';
+  if (m.leftArmLean && m.rightArmLean) {
+    const gap = ((m.rightArmLean - m.leftArmLean) / m.leftArmLean) * 100;
+    gapStr = `${gap.toFixed(1)}%`;
+  }
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div>
+        <h2 style="font-size:18px;margin-bottom:2px">Body Stats</h2>
+        <div style="color:var(--text-muted);font-size:13px">${formatDateFull(m.date)}</div>
+      </div>
+      <button onclick="hideBodyModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;padding:0 4px;line-height:1">×</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:8px 0 4px">Composition</div>
+    ${row('Body Weight', m.weight, 'kg')}
+    ${row('Body Fat', m.bfp, '%')}
+    ${row('Skeletal Muscle Mass', m.smm, 'kg')}
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:14px 0 4px">Arm Lean Mass (InBody)</div>
+    ${row('<span style="color:var(--left-col)">Left Arm Lean</span>', m.leftArmLean, 'kg')}
+    ${row('<span style="color:var(--right-col)">Right Arm Lean</span>', m.rightArmLean, 'kg')}
+    ${row('L/R Gap', gapStr, '')}
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin:14px 0 4px">Tape Measurements</div>
+    ${row('<span style="color:var(--left-col)">Left Arm</span>', m.leftArmCirc, 'cm')}
+    ${row('<span style="color:var(--right-col)">Right Arm</span>', m.rightArmCirc, 'cm')}
+    ${row('Shoulder Width', m.shoulderWidth, 'cm')}
+    ${row('Chest', m.chest, 'cm')}
+    ${row('Waist', m.waist, 'cm')}
+    ${row('<span style="color:var(--left-col)">Thigh L</span>', m.thighL, 'cm')}
+    ${row('<span style="color:var(--right-col)">Thigh R</span>', m.thighR, 'cm')}
+
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-secondary" style="flex:1" onclick="hideBodyModal()">Close</button>
+      <button class="btn btn-primary" style="flex:1" onclick="hideBodyModal();loadBodyEntry('${m.date}')">✏️ Edit</button>
+    </div>
+  </div>`;
+  overlay.onclick = (e) => { if (e.target === overlay) hideBodyModal(); };
+  overlay.classList.remove('hidden');
+  overlay.classList.add('visible');
+}
+
+function hideBodyModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('visible');
+  overlay.classList.add('hidden');
+  overlay.innerHTML = '';
+  overlay.onclick = null;
 }
 
 function loadBodyEntry(date) {
@@ -1505,7 +1573,7 @@ function renderSettings(el) {
     </div>
   </div>`;
 
-  html += `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:16px 0 8px">TrainRight <span style="color:var(--primary);font-weight:700">v1.2</span> · 16-Week Program</div>`;
+  html += `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:16px 0 8px">TrainRight <span style="color:var(--primary);font-weight:700">v1.3</span> · 16-Week Program</div>`;
   html += `</div>`;
   el.innerHTML = html;
 }
