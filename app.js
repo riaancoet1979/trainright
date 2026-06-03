@@ -1138,7 +1138,7 @@ function renderBodyLogTab() {
     for (const m of recent) {
       html += `<div class="card-sm flex-between" style="cursor:pointer" onclick="loadBodyEntry('${m.date}')">
         <div>
-          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)} <span style="font-weight:400;color:var(--text-dim);font-size:11px">· tap to edit</span></div>
+          <div style="font-weight:600;font-size:14px">${formatDateShort(m.date)} <span style="font-weight:600;color:var(--primary);font-size:12px;margin-left:6px">✏️ tap to edit</span></div>
           <div style="font-size:12px;color:var(--text-muted)">
             ${m.weight?m.weight+' kg':''}${m.bfp?' · '+m.bfp+'% BF':''}${m.smm?' · SMM '+m.smm+' kg':''}
           </div>
@@ -1505,7 +1505,7 @@ function renderSettings(el) {
     </div>
   </div>`;
 
-  html += `<div style="text-align:center;color:var(--text-dim);font-size:11px;padding:16px 0 8px">TrainRight v1.0 · 16-Week Program</div>`;
+  html += `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:16px 0 8px">TrainRight <span style="color:var(--primary);font-weight:700">v1.2</span> · 16-Week Program</div>`;
   html += `</div>`;
   el.innerHTML = html;
 }
